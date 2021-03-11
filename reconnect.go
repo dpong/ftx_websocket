@@ -87,7 +87,6 @@ func (rc *RecConnClientWS) Close() {
 		rc.Conn.Close()
 		rc.mu.Unlock()
 	}
-
 	rc.setIsConnected(false)
 }
 
@@ -100,7 +99,9 @@ func (rc *RecConnClientWS) ReadMessage() (messageType int, message []byte, err e
 	if !rc.IsConnected() {
 		return messageType, message, errors.New("websocket disconnected when read message")
 	}
+	rc.mu.Lock()
 	messageType, message, err = rc.Conn.ReadMessage()
+	rc.mu.Unlock()
 	return
 }
 
@@ -108,55 +109,18 @@ func (rc *RecConnClientWS) ReadMessage() (messageType int, message []byte, err e
 // writing the message and closing the writer.
 //
 // If the connection is closed ErrNotConnected is returned
-func (rc *RecConnClientWS) WriteMessage(messageType int, data []byte) {
+func (rc *RecConnClientWS) WriteMessage(messageType int, data []byte) error {
 	err := ErrNotConnected
-	if rc.IsConnected() {
-		rc.mu.Lock()
-		err = rc.Conn.WriteMessage(messageType, data)
-		rc.mu.Unlock()
-		if err != nil {
-			rc.Logger.Println(err)
-		}
+	if !rc.IsConnected() {
+		return errors.New("websocket disconnected when write message")
 	}
-}
-
-// WriteJSON writes the JSON encoding of v to the connection.
-//
-// See the documentation for encoding/json Marshal for details about the
-// conversion of Go values to JSON.
-//
-// If the connection is closed ErrNotConnected is returned
-func (rc *RecConnClientWS) WriteJSON(v interface{}) error {
-	err := ErrNotConnected
-	if rc.IsConnected() {
-		rc.mu.Lock()
-		err = rc.Conn.WriteJSON(v)
-		rc.mu.Unlock()
-		if err != nil {
-			rc.CloseAndReconnect()
-		}
+	rc.mu.Lock()
+	err = rc.Conn.WriteMessage(messageType, data)
+	rc.mu.Unlock()
+	if err != nil {
+		return err
 	}
-
-	return err
-}
-
-// ReadJSON reads the next JSON-encoded message from the connection and stores
-// it in the value pointed to by v.
-//
-// See the documentation for the encoding/json Unmarshal function for details
-// about the conversion of JSON to a Go value.
-//
-// If the connection is closed ErrNotConnected is returned
-func (rc *RecConnClientWS) ReadJSON(v interface{}) error {
-	err := ErrNotConnected
-	if rc.IsConnected() {
-		err = rc.Conn.ReadJSON(v)
-		if err != nil {
-			rc.CloseAndReconnect()
-		}
-	}
-
-	return err
+	return nil
 }
 
 func (rc *RecConnClientWS) setURL(url string) {
