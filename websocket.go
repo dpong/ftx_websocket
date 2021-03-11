@@ -50,10 +50,12 @@ func (c *RecConnClientWS) ReadFromWSToChannel(ctx context.Context, chRead *chan 
 	for {
 		select {
 		case <-ctx.Done():
+			close(*chRead)
 			return
 		default:
 			_, message, err := c.Conn.ReadMessage()
 			if err != nil {
+				close(*chRead)
 				return
 			}
 			*chRead <- message
@@ -66,7 +68,10 @@ func (c *RecConnClientWS) WriteFromChannelToWS(ctx context.Context, chWrite *cha
 		select {
 		case <-ctx.Done():
 			return
-		case message := <-*chWrite:
+		case message, ok := <-*chWrite:
+			if !ok {
+				return
+			}
 			c.Conn.WriteMessage(websocket.TextMessage, message.([]byte))
 		default:
 			time.Sleep(time.Second)
