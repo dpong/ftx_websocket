@@ -101,10 +101,6 @@ func (rc *RecConnClientWS) ReadMessage() (messageType int, message []byte, err e
 		return messageType, message, errors.New("websocket disconnected when read message")
 	}
 	messageType, message, err = rc.Conn.ReadMessage()
-	if err != nil {
-		rc.Logger.Println(err)
-		rc.CloseAndReconnect()
-	}
 	return
 }
 
@@ -120,7 +116,6 @@ func (rc *RecConnClientWS) WriteMessage(messageType int, data []byte) {
 		rc.mu.Unlock()
 		if err != nil {
 			rc.Logger.Println(err)
-			rc.CloseAndReconnect()
 		}
 	}
 }

@@ -53,7 +53,7 @@ func (c *RecConnClientWS) ReadFromWSToChannel(ctx context.Context, chRead *chan 
 			close(*chRead)
 			return
 		default:
-			_, message, err := c.Conn.ReadMessage()
+			_, message, err := c.ReadMessage()
 			if err != nil {
 				close(*chRead)
 				return
@@ -72,7 +72,7 @@ func (c *RecConnClientWS) WriteFromChannelToWS(ctx context.Context, chWrite *cha
 			if !ok {
 				return
 			}
-			c.Conn.WriteMessage(websocket.TextMessage, message.([]byte))
+			c.WriteMessage(websocket.TextMessage, message.([]byte))
 		default:
 			time.Sleep(time.Second)
 		}
